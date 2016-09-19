@@ -3,11 +3,15 @@ html, body {
   margin: 0;
 }
 
+body {
+  background: black;
+}
+
 .led {
   width: 10px;
   height: 10px;
   margin: 5px;
-  background-color: grey;
+  background-color: black;
 }
 
 .row {
