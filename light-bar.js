@@ -1,8 +1,8 @@
 (function() {
 
   /** Constants **/
-  var WIDTH = 20
-  ,   HEIGHT = 5 // MUST BE ODD
+  var WIDTH = 60
+  ,   HEIGHT = 21 // MUST BE ODD
   ;
 
   /** Private variables **/
@@ -63,9 +63,17 @@
     }
   };
   var sinHeight = function(x, harmonic) {
-    var xPos = (x / WIDTH) * Math.PI * harmonic;
-    var yPos = Math.floor((Math.sin(xPos) * Math.floor(HEIGHT / 2)) + Math.floor(HEIGHT / 2));
-    return yPos;
+    var xPos = (x / (WIDTH - 1)) * Math.PI * harmonic;
+    var yPos = (Math.sin(xPos) + 1) / 2;
+    yPos *= HEIGHT - 1;
+    return Math.round(yPos);
+  };
+  var colourSum = function(a, b) {
+    var colour = a + b;
+    if (a > 0 && b > 0) {
+      colour /= 2;
+    }
+    return cap(Math.round(colour), 0, 255);
   };
 
   /** Private classes **/
@@ -82,7 +90,7 @@
         g = r.g;
         r = r.r;
       }
-      return new Colour(cap(this.r + r, 0, 255), cap(this.g + g, 0, 255), cap(this.b + b, 0, 255));
+      return new Colour(colourSum(this.r, r), colourSum(this.g, g), colourSum(this.b, b));
     },
     dim: function(intensity) {
       intensity = cap(intensity, 0, 1);
@@ -106,7 +114,6 @@
     constructor: Fader,
     go: function(model, delta) {
       var fade = cap(Math.round((delta / this.delay) * 255), 0, 255);
-      //console.log(fade);
       model.leds.forEach(function(rowArray, row) {
         rowArray.forEach(function(colour, col) {
           model.leds[row][col] = model.leds[row][col].add(-fade,-fade,-fade);
@@ -151,19 +158,33 @@
     }
   };
 
-  function StandingWave(harmonic, speed, colour) {
+  function StandingWave(harmonic, speed, colour, offset, scanSpeed) {
+    this.offset = offset || 0;
     this.harmonic = harmonic;
     this.speed = speed;
     this.lights = [];
+    this.totalDelta = 0;
+    this.scanSpeed = scanSpeed || 0;
     for (var i = 0; i < WIDTH; i++) {
-      var light = new LightSource(sinHeight(i, this.harmonic), i, colour);
+      var light = new LightSource(sinHeight(i + this.offset, this.harmonic), i, colour);
+      this.lights.push(light);
       model.lights.push(light);
     }
   }
   StandingWave.prototype = {
     constructor: StandingWave,
     go: function(model, delta) {
-
+      this.totalDelta = (this.totalDelta + delta) % this.speed;
+      var wavePos = this.speed ? this.totalDelta / this.speed * Math.PI * 2 : 1;
+      var wave = this;
+      if (this.scanSpeed) {
+        this.offset = (this.offset + (delta / this.scanSpeed) * WIDTH) % (WIDTH * 2);
+      }
+      this.lights.forEach(function(light) {
+        var max = sinHeight(light.col + wave.offset, wave.harmonic) - Math.floor(HEIGHT / 2);
+        var current = (max * Math.sin(wavePos)) + Math.floor(HEIGHT / 2);
+        light.row = Math.round(current);
+      });
     }
   };
 
@@ -179,26 +200,6 @@
       this.totalDelta = 0;
       model.lights = model.lights.filter(function(light) {
         return ++light.col < WIDTH;
-      });
-    }
-  };
-
-  function Blur(amount) {
-    this.amount = amount;
-  }
-  Blur.prototype = {
-    constructor: Blur,
-    go: function(model, delta) {
-      var amount = this.amount;
-      model.leds = model.leds.map(function(rowArray, row) {
-        return rowArray.map(function(led, col) {
-          var colour = led.dim(amount * 4);
-          if (row > 0) { colour = colour.add(model.leds[row - 1][col].dim(amount)); }
-          if (row < HEIGHT - 1) { colour = colour.add(model.leds[row + 1][col].dim(amount)); }
-          if (col > 0) { colour = colour.add(model.leds[row][col - 1].dim(amount)); }
-          if (col < WIDTH - 1) { colour = colour.add(model.leds[row][col + 1].dim(amount)); }
-          return colour;
-        });
       });
     }
   };
@@ -227,9 +228,11 @@
         model.leds[i][j] = new Colour(0, 0, 0);
       }
     }
-    processors.push(new Fader(2000));
-    processors.push(new Lighter(200));
-    processors.push(new StandingWave(2, 1000, new Colour(0, 255, 0)));
+    processors.push(new Fader(3000));
+    processors.push(new Lighter(10));
+    processors.push(new StandingWave(1, 2000, new Colour(0, 153, 204), 4, 5000));
+    processors.push(new StandingWave(1, 4000, new Colour(204, 255, 204), 0, 6000));
+    processors.push(new StandingWave(1, 5000, new Colour(102, 204, 255), 2, 10000));
     //processors.push(new LightShifter(100));
     //processors.push(new Oscillator(0.75, 100, function() { return new Colour(0, 255, 0); }));
     //processors.push(new Oscillator(0.5, 60, function() { return new Colour(255, 0, 0); }));
