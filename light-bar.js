@@ -1,8 +1,8 @@
 (function() {
 
   /** Constants **/
-  var WIDTH = 60
-  ,   HEIGHT = 21 // MUST BE ODD
+  var WIDTH = 30
+  ,   HEIGHT = 7 // MUST BE ODD
   ;
 
   /** Private variables **/
@@ -71,7 +71,7 @@
   var colourSum = function(a, b) {
     var colour = a + b;
     if (a > 0 && b > 0) {
-      colour /= 2;
+      //colour /= 2;
     }
     return cap(Math.round(colour), 0, 255);
   };
@@ -122,15 +122,30 @@
     }
   };
 
-  function Lighter(transmissionDelay) {
+  function Lighter(transmissionDelay, diffuse) {
+    this.diffuse = cap(diffuse || 0, 0, 1);
     this.transmissionDelay = transmissionDelay;
   }
   Lighter.prototype = {
     constructor: Lighter,
     go: function(model, delta) {
       var luminosity = cap(delta / this.transmissionDelay, 0, 1);
+      var lighter = this;
       model.lights.forEach(function(light) {
         model.leds[light.row][light.col] = model.leds[light.row][light.col].add(light.colour.dim(luminosity));
+        var diffuse = light.colour.dim(lighter.diffuse * luminosity);
+        if (light.col > 0) {
+          model.leds[light.row][light.col - 1] = model.leds[light.row][light.col - 1].add(diffuse);
+        }
+        if (light.col < WIDTH - 2) {
+          model.leds[light.row][light.col + 1] = model.leds[light.row][light.col + 1].add(diffuse);
+        }
+        if (light.row > 0) {
+          model.leds[light.row - 1][light.col] = model.leds[light.row - 1][light.col].add(diffuse);
+        }
+        if (light.row < HEIGHT - 2) {
+          model.leds[light.row + 1][light.col] = model.leds[light.row + 1][light.col].add(diffuse);
+        }
       });
     }
   };
@@ -228,11 +243,11 @@
         model.leds[i][j] = new Colour(0, 0, 0);
       }
     }
-    processors.push(new Fader(3000));
-    processors.push(new Lighter(10));
-    processors.push(new StandingWave(1, 2000, new Colour(0, 153, 204), 4, 5000));
-    processors.push(new StandingWave(1, 4000, new Colour(204, 255, 204), 0, 6000));
-    processors.push(new StandingWave(1, 5000, new Colour(102, 204, 255), 2, 10000));
+    processors.push(new Fader(1000));
+    processors.push(new Lighter(300, 1));
+    processors.push(new StandingWave(1, 3000, new Colour(0, 153, 204).dim(0.4), 4, 20000));
+    processors.push(new StandingWave(2, 4000, new Colour(204, 255, 204).dim(0.4), 0, 6000));
+    processors.push(new StandingWave(3, 5000, new Colour(102, 204, 255).dim(0.4), 2, 10000));
     //processors.push(new LightShifter(100));
     //processors.push(new Oscillator(0.75, 100, function() { return new Colour(0, 255, 0); }));
     //processors.push(new Oscillator(0.5, 60, function() { return new Colour(255, 0, 0); }));
