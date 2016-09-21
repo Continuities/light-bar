@@ -1,9 +1,19 @@
 (function() {
 
   /** Constants **/
-  var WIDTH = 30
-  ,   HEIGHT = 7 // MUST BE ODD
+  var WIDTH = 29
+  ,   HEIGHT = 5 // MUST BE ODD
   ;
+
+  var PATTERNS = {
+    bsod: [
+        [0, 1], [0, 2], [0, 5], [0, 6], [0, 9], [0, 10], [0, 12], [0, 13],
+        [1, 0], [1, 2], [1, 4], [1, 8], [1, 10], [1, 12], [1, 14],
+        [2, 0], [2, 1], [2, 2], [2, 4], [2, 5], [2, 6], [2, 8], [2, 10], [2, 12], [2, 14],
+        [3, 0], [3, 2], [3, 6], [3, 8], [3, 10], [3, 12], [3, 14],
+        [4, 0], [4, 1], [4, 4], [4, 5], [4, 8], [4, 9], [4, 12], [4, 13]
+    ]
+  };
 
   /** Private variables **/
   var model = {
@@ -113,10 +123,10 @@
   Fader.prototype = {
     constructor: Fader,
     go: function(model, delta) {
-      var fade = cap(Math.round((delta / this.delay) * 255), 0, 255);
+      var fade = cap(delta / this.delay, 0, 1);
       model.leds.forEach(function(rowArray, row) {
         rowArray.forEach(function(colour, col) {
-          model.leds[row][col] = model.leds[row][col].add(-fade,-fade,-fade);
+          model.leds[row][col] = model.leds[row][col].dim(1 - fade,1 - fade,1 - fade);
         });
       });
     }
@@ -219,6 +229,28 @@
     }
   };
 
+  function PatternStamper(row, col, pattern, colour) {
+    this.row = row;
+    this.col = col;
+    this.pattern = pattern;
+    this.colour = colour;
+  }
+  PatternStamper.prototype = {
+    constructor: PatternStamper,
+    go: function(model, delta) {
+      var stamp = this;
+      stamp.pattern.forEach(function(p) {
+        var row = p[0] + stamp.row
+        ,   col = p[1] + stamp.col
+        ;
+        if (row < 0 || row > HEIGHT - 1 || col < 0 || col > WIDTH - 1) {
+          return;
+        }
+        model.leds[row][col] = stamp.colour;
+      });
+    }
+  };
+
   function drawLoop() {
     requestAnimationFrame(drawLoop);
 
@@ -244,10 +276,11 @@
       }
     }
     processors.push(new Fader(1000));
-    processors.push(new Lighter(300, 1));
-    processors.push(new StandingWave(1, 3000, new Colour(0, 153, 204).dim(0.4), 4, 20000));
-    processors.push(new StandingWave(2, 4000, new Colour(204, 255, 204).dim(0.4), 0, 6000));
-    processors.push(new StandingWave(3, 5000, new Colour(102, 204, 255).dim(0.4), 2, 10000));
+    processors.push(new Lighter(200, 1));
+    processors.push(new StandingWave(1, 4000, new Colour(0, 127, 151).dim(0.3), 4, 8000));
+    processors.push(new StandingWave(2, 5000, new Colour(164, 188, 188).dim(0.1), 0, 6000));
+    processors.push(new StandingWave(3, 7000, new Colour(124, 88, 127).dim(0.2), 2, 10000));
+    processors.push(new PatternStamper(0, 7, PATTERNS.bsod, new Colour(0, 0, 0)));
     //processors.push(new LightShifter(100));
     //processors.push(new Oscillator(0.75, 100, function() { return new Colour(0, 255, 0); }));
     //processors.push(new Oscillator(0.5, 60, function() { return new Colour(255, 0, 0); }));
