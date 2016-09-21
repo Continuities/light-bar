@@ -2,7 +2,7 @@
 
   /** Constants **/
   var WIDTH = 29
-  ,   HEIGHT = 5 // MUST BE ODD
+  ,   HEIGHT = 7 // MUST BE ODD
   ;
 
   var PATTERNS = {
@@ -17,9 +17,9 @@
 
   /** Private variables **/
   var model = {
-    leds: [],
-    lights: []
-  }
+        leds: [],
+        lights: []
+      }
   ,   processors = []
   ,   last
   ;
@@ -280,7 +280,7 @@
     processors.push(new StandingWave(1, 4000, new Colour(0, 127, 151).dim(0.3), 4, 8000));
     processors.push(new StandingWave(2, 5000, new Colour(164, 188, 188).dim(0.1), 0, 6000));
     processors.push(new StandingWave(3, 7000, new Colour(124, 88, 127).dim(0.2), 2, 10000));
-    processors.push(new PatternStamper(0, 7, PATTERNS.bsod, new Colour(0, 0, 0)));
+    processors.push(new PatternStamper(1, 7, PATTERNS.bsod, new Colour(0, 0, 0)));
     //processors.push(new LightShifter(100));
     //processors.push(new Oscillator(0.75, 100, function() { return new Colour(0, 255, 0); }));
     //processors.push(new Oscillator(0.5, 60, function() { return new Colour(255, 0, 0); }));
